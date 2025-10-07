@@ -1,0 +1,5 @@
+{
+  "name": "Health Logistics Planner",
+  "description": "An AI-powered application for integrated supply chain planning. It uses data on vaccine stocks, clinic locations, and road conditions to generate optimized distribution schedules for health logistics.",
+  "requestFramePermissions": []
+}
