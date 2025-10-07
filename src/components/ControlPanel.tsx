@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { VaccineStock } from '../types';
+import type { VaccineStock } from '@/types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 
 interface ControlPanelProps {

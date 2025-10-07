@@ -1,10 +1,10 @@
 
 import React, { useState, useCallback } from 'react';
 import { Dashboard } from './components/Dashboard';
-import { generateDistributionPlan } from './services/geminiService';
+import { generateDistributionPlan } from '@/services/geminiService';
 // FIX: Import `RoadCondition` to be used for typing.
-import type { DistributionPlan, VaccineStock, Clinic, RoadCondition } from './types';
-import { MOCK_CLINICS, INITIAL_VACCINE_STOCKS } from './constants';
+import type { DistributionPlan, VaccineStock, Clinic, RoadCondition } from '@/types';
+import { MOCK_CLINICS, INITIAL_VACCINE_STOCKS } from '@/constants';
 
 const App: React.FC = () => {
   const [distributionPlan, setDistributionPlan] = useState<DistributionPlan | null>(null);

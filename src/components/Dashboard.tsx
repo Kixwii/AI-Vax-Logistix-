@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { DistributionPlan, VaccineStock, Clinic } from '../types';
+import type { DistributionPlan, VaccineStock, Clinic } from '../../types';
 import { ControlPanel } from './ControlPanel';
 import { MapPanel } from './MapPanel';
 import { PlanPanel } from './PlanPanel';

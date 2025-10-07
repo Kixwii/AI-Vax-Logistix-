@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { DistributionPlan } from '../types';
+import type { DistributionPlan } from '@/types';
 import { TruckIcon } from './icons/TruckIcon';
 
 interface PlanPanelProps {
