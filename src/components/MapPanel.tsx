@@ -8,22 +8,17 @@ interface MapPanelProps {
 export const MapPanel: React.FC<MapPanelProps> = ({ clinics }) => {
   const mapRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  // Central depot coordinates (you can adjust these)
   const depotCoords = { lat: 0.0, lng: 37.5 };
 
-  // Convert clinic percentage coords to lat/lng if needed
-  // Assuming clinics already have lat/lng in coords, otherwise we need to convert
   const getClinicLatLng = (clinic: Clinic) => {
-    // If clinics have actual lat/lng:
     if (clinic.coords.lat !== undefined && clinic.coords.lng !== undefined) {
       return { lat: clinic.coords.lat, lng: clinic.coords.lng };
     }
     
-    // Otherwise convert from percentage-based coords to lat/lng
-    // This is a simple conversion - adjust the bounds as needed for your region
-    const latRange = 5; // degrees of latitude visible
-    const lngRange = 5; // degrees of longitude visible
+    const latRange = 5;
+    const lngRange = 5;
     
     return {
       lat: depotCoords.lat + ((50 - clinic.coords.y) / 100) * latRange,
@@ -31,69 +26,13 @@ export const MapPanel: React.FC<MapPanelProps> = ({ clinics }) => {
     };
   };
 
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    // Load Leaflet CSS and JS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => initMap();
-    document.body.appendChild(script);
-
-    const initMap = () => {
-      const L = (window as any).L;
-      if (!L) return;
-
-      // Calculate bounds to fit all clinics
-      const allLats = clinics.map(c => getClinicLatLng(c).lat);
-      const allLngs = clinics.map(c => getClinicLatLng(c).lng);
-      
-      const centerLat = allLats.length > 0 
-        ? (Math.min(...allLats) + Math.max(...allLats)) / 2 
-        : depotCoords.lat;
-      const centerLng = allLngs.length > 0 
-        ? (Math.min(...allLngs) + Math.max(...allLngs)) / 2 
-        : depotCoords.lng;
-
-      const map = L.map(mapContainerRef.current).setView([centerLat, centerLng], 8);
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(map);
-
-      mapRef.current = { map, L, markers: [] };
-      updateMarkers();
-    };
-
-    return () => {
-      if (mapRef.current?.map) {
-        mapRef.current.map.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (mapRef.current) {
-      updateMarkers();
-    }
-  }, [clinics]);
-
   const updateMarkers = () => {
     if (!mapRef.current) return;
     const { map, L, markers } = mapRef.current;
 
-    // Clear existing markers
     markers.forEach((m: any) => map.removeLayer(m));
     markers.length = 0;
 
-    // Add depot marker
     const depotIcon = L.divIcon({
       className: 'custom-depot-marker',
       html: `
@@ -117,18 +56,16 @@ export const MapPanel: React.FC<MapPanelProps> = ({ clinics }) => {
     }).addTo(map).bindPopup('<b>Central Depot</b><br>Main vaccine distribution center');
     markers.push(depotMarker);
 
-    // Add clinic markers
     clinics.forEach(clinic => {
       const coords = getClinicLatLng(clinic);
       
-      // Determine urgency color
       const covid19Ratio = clinic.currentStock.covid19 / clinic.weeklyDemand.covid19;
       const fluRatio = clinic.currentStock.flu / clinic.weeklyDemand.flu;
       const minRatio = Math.min(covid19Ratio, fluRatio);
       
-      let color = '#10b981'; // green - good
-      if (minRatio < 0.5) color = '#ef4444'; // red - urgent
-      else if (minRatio < 0.75) color = '#f59e0b'; // amber - warning
+      let color = '#10b981';
+      if (minRatio < 0.5) color = '#ef4444';
+      else if (minRatio < 0.75) color = '#f59e0b';
       
       const clinicIcon = L.divIcon({
         className: 'custom-clinic-marker',
@@ -173,18 +110,78 @@ export const MapPanel: React.FC<MapPanelProps> = ({ clinics }) => {
       markers.push(marker);
     });
 
-    // Fit bounds to show all markers
     if (markers.length > 0) {
       const group = L.featureGroup(markers);
       map.fitBounds(group.getBounds().pad(0.1));
     }
   };
 
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => {
+      const L = (window as any).L;
+      if (!L) return;
+
+      const allLats = clinics.map(c => getClinicLatLng(c).lat);
+      const allLngs = clinics.map(c => getClinicLatLng(c).lng);
+      
+      const centerLat = allLats.length > 0 
+        ? (Math.min(...allLats) + Math.max(...allLats)) / 2 
+        : depotCoords.lat;
+      const centerLng = allLngs.length > 0 
+        ? (Math.min(...allLngs) + Math.max(...allLngs)) / 2 
+        : depotCoords.lng;
+
+      const map = L.map(mapContainerRef.current).setView([centerLat, centerLng], 8);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      mapRef.current = { map, L, markers: [] };
+      updateMarkers();
+      
+      if (mapContainerRef.current) {
+        resizeObserverRef.current = new ResizeObserver(() => {
+          if (mapRef.current?.map) {
+            mapRef.current.map.invalidateSize();
+          }
+        });
+        resizeObserverRef.current.observe(mapContainerRef.current);
+      }
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+      if (mapRef.current?.map) {
+        mapRef.current.map.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mapRef.current) {
+      updateMarkers();
+    }
+  }, [clinics]);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg h-full flex flex-col">
       <h2 className="text-xl font-bold text-slate-700 mb-4 border-b pb-3">Regional Map</h2>
       
-      {/* Legend */}
       <div className="mb-4 flex flex-wrap gap-4 text-xs">
         <div className="flex items-center space-x-2">
           <div className="w-4 h-4 rounded-full bg-blue-600"></div>
@@ -204,11 +201,9 @@ export const MapPanel: React.FC<MapPanelProps> = ({ clinics }) => {
         </div>
       </div>
 
-      {/* Map Container */}
       <div 
         ref={mapContainerRef} 
-        className="flex-1 rounded-lg overflow-hidden shadow-inner border-2 border-slate-300"
-        style={{ minHeight: '400px' }}
+        className="flex-1 rounded-lg overflow-hidden shadow-inner border-2 border-slate-300 min-h-0"
       ></div>
       
       <div className="mt-2 text-xs text-slate-500 text-center">
